@@ -1,4 +1,11 @@
-console.log("page121");
+/* Const Value */
+/* Settings */
+defaultUserAgent = 
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.9; rv:38.0) Gecko/20100101 Firefox/38.0";
+defaultAndroidUserAgent = 
+  "Mozilla/5.0 (Linux; U; Android 4.0.3; ko-kr; LG-L160L Build/IML74K) AppleWebkit/534.30 (KHTML, like Gecko) Version/4.0 Mobile Safari/534.30";
+defaultTimeout = 5000;
+
 if (!Date.prototype.toISOString) {
     Date.prototype.toISOString = function () {
         function pad(n) { return n < 10 ? '0' + n : n; }
@@ -12,11 +19,12 @@ if (!Date.prototype.toISOString) {
             ms(this.getMilliseconds()) + 'Z';
     }
 }
-console.log("page");
+
 var page = require('webpage').create(),
     system = require('system');
 var urlParser = require('url');
-console.log("urlParser");
+
+
 
 function createHAR(address, title, startTime, resources)
 {
@@ -117,7 +125,6 @@ function analyzeHAR(completeHarObject)
             console.log("[ERROR] @analyzeHAR domContentLoadedTime is not valid");
             return null;
         }
-        console.log("Request: " + pageURL + " " + domContentLoadedTime);
         harObj.entries.forEach( function(elem){
             var url = elem.request.url;
             var full_time = elem.fullTime;
@@ -139,7 +146,7 @@ function analyzeHAR(completeHarObject)
             }
         });
         for (var item in results) {
-            console.log(item+" => "+results[item].size+" "+results[item].number);
+            console.log('[ITEM] '+item+" => "+results[item].size+" "+results[item].number);
         }
         return results;
     }
@@ -151,13 +158,26 @@ function analyzeHAR(completeHarObject)
 }
 
 
-if (system.args.length === 1) {
+if (system.args.length === 1) 
+{
     console.log('Usage: netsniff.js <some URL>');
     phantom.exit(1);
-} else {
-
+} 
+else 
+{
+	var userAgent = defaultAndroidUserAgent;
+	var timeout = defaultTimeout;
     page.address = system.args[1];
+    if (system.args.length === 3) {
+    	userAgent = system.args[2];
+    }
+    if (system.args.length === 4) {
+    	timeout = Number.parseInt(system.args[3]);
+    }
+    console.log("userAgent:"+userAgent+" timeout:"+timeout);
     page.resources = [];
+    page.settings.resourceTimeout = timeout;
+    page.settings.userAgent = userAgent;
 
     page.onCallback = function(data) {
         page.DOMContentLoadedTime = data;
@@ -191,7 +211,7 @@ if (system.args.length === 1) {
 
     page.open(page.address, function (status) {
         if (status !== 'success') {
-            console.log('FAIL to load the address');
+            console.log('[ERROR] @page.open fail to load the address');
             phantom.exit(1);
         } else {
             page.endTime = new Date();
@@ -201,24 +221,24 @@ if (system.args.length === 1) {
             
         }
         try {
-            console.log("start generating HAR");
             var har = createHAR(page.address, page.title, page.startTime, page.resources);
             
             analyzeHAR(har);
             //console.log(JSON.stringify(har, undefined, 4));
-            phantom.exit();
+            phantom.exit(0);
         }
         catch (e) {
-            console.log("failed to generate HAR: "+e);
-            phantom.exit();
+            console.log("[ERROR] @page.open " + e);
+            phantom.exit(1);
         }
     });
 }
-console.log("setTimeout");
+
+//Timeout
 setTimeout(
     function(){
         console.log("[TIMEOUT]");
         var har = createHAR(page.address, page.title, page.startTime, page.resources);
         analyzeHAR(har);
-        phantom.exit();
-    }, 2000);
+        phantom.exit(1);
+    }, 10000);

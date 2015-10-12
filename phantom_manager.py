@@ -71,7 +71,7 @@ class Manager(threading.Thread):
             
             # prepar args
             args = ['phantomjs']
-            args[1:1] = [self.__worker_script_path, task.url, str(task.times)]
+            args[1:1] = [self.__worker_script_path, task.url, str(self.__user_agent)]
             
             # start worker process 
             worker = subprocess.Popen(
@@ -124,7 +124,129 @@ class Manager(threading.Thread):
                             % len(self.__workers))
                         break
                     else:
-                        logger.info("[MAIN] worker[%d] %s finished its job, kill it" 
+                        logger.info("[MAIN] worker[%d] %s finished its job, remove it" 
+                            % (index, self.__workers[index][1]) )
+                        del self.__workers[index] 
+
+                # start task if there is any
+                #if not self.__task_queue.empty():
+                while len(self.__workers) < self.__worker_count:
+                    try:
+                        if len(self.__workers) > 0:
+                            task = self.__task_queue.get(True, 10)
+                            logger.info("[MAIN] allocate task [%s] to a worker [%d instance running]" 
+                                % (task.url, len(self.__workers)) )
+                            self.__launch_worker(task)
+                        else:
+                            logger.info('[MAIN] no working process ... ')
+                            task = self.__task_queue.get()
+                            logger.info("[MAIN] allocate task [%s] to a worker [%d instance running]" 
+                                % (task.url, len(self.__workers)) )
+                            self.__launch_worker(task)
+                    except Queue.Empty as e:
+                        logger.debug("[MAIN] queue empty timeout")
+                        break
+                    
+
+                #logger.info('[MAIN] no availble workers, try in 2s')
+                time.sleep(5)
+
+            except Exception as e:
+                traceback.print_exc()
+                logger.error(
+                    "failed to start task, repeat in 2s: "+str(e))   
+                time.sleep(2) 
+
+# A task is to browse a webpage for several times
+# Manager's queue can queue many tasks
+# but only one tast can run at a time
+# A task needs multiple processes to run simultaneously
+# The manager needs to check when a task is done and call callback method  
+class Manager2(threading.Thread):
+    def __init__(self, task_queue, 
+        timeout, user_agent, log_dir, 
+        callback, worker_script_path):
+        threading.Thread.__init__(self)
+        self.__task_queue = task_queue
+        self.__timeout = timeout
+        self.__user_agent = user_agent
+        self.__workers = []
+        self.__log_dir = log_dir
+        
+        self.__worker_script_path = worker_script_path
+        self.__callback = callback
+
+        self.__total_worker_instances = 1
+
+    def __launch_worker(self, task, index):
+        token = str(uuid.uuid4())
+        try:
+            # prepare log path
+            o = urlparse.urlparse(task.url)
+            host = o.netloc
+            dir_path_name = os.path.join(self.__log_dir, token)
+            while os.path.exists(dir_path_name):
+                token = str(uuid.uuid())
+                dir_path_name = os.path.join(self.__log_dir, token)
+            os.makedirs(dir_path_name)
+
+            # prepar args
+            args = ['phantomjs']
+            args[1:1] = [self.__worker_script_path, task.url, str(self.__user_agent)]
+            
+            # start worker process 
+            worker = subprocess.Popen(
+                args, 
+                stdout=open(os.path.join(dir_path_name,
+                    'stdout.txt'), 'w'),
+                stderr=open(os.path.join(dir_path_name,
+                    'stderr.txt'), 'w'))
+            # [starting_time, url, task_times, current_index, popen-obj, dir]
+            worker_info = 
+                (int(time.time()),task.url, task.times, index, worker, dir_path_name)
+            time.sleep(1)
+
+            # update worker info
+            self.__total_worker_instances += 1
+            self.__workers.append(worker_info)
+            logger.info("[MAIN] successfully run " + worker_info[1] +
+                " withpid:"+str(worker.pid)+
+                ", dir_path:" + dir_path_name)
+        except Exception as e:
+            logger.error("failed to launch worker "+str(e))
+
+    def run(self):
+        while True:
+            try:
+                # check and kill dead process
+                now = int(time.time())
+                while len(self.__workers) > 0:
+                    index = 0
+                    for worker in self.__workers:
+                        starting_time = worker[0]
+                        proc = worker[3]
+                        if now - starting_time > self.__timeout:
+                            logger.info("[MAIN] TIMEOUT worker[%d] %s pid:%d" 
+                                % (index, worker[1], worker[3].pid) )
+                            killProcessAndChildProcesses(worker[3].pid)
+                            break
+                        else:
+                            code = proc.poll()
+                            if code != None:
+                                logger.info("[MAIN] EXIT[%s] worker[%d] %s pid[%s]" 
+                                    % (str(code), index, worker[1], str(worker[3].pid) ) )
+                                #killProcess(worker[3].pid)
+                                #killProcessAndChildProcesses(worker[3].pid)
+                                break
+                            else:
+                                logger.info("[MAIN] process %d is still running" % worker[3].pid)
+                        index += 1
+                    if index >= len(self.__workers):
+                        logger.info("[MAIN] all %d workers are in processing"
+                            % len(self.__workers))
+                        break
+                    else:
+                        logger.info("[MAIN] worker[%d] %s finished its job, remove it" 
                             % (index, self.__workers[index][1]) )
                         del self.__workers[index] 
 
@@ -177,25 +299,31 @@ class KodeFunHTTPRequestHandler(BaseHTTPRequestHandler):
             url = task['url'][0]
             times = int(task['times'][0])
             
-            self.wfile.write("task received: %s for %d times\r\n" 
+            self.wfile.write("task received: visit %s for %d times\r\n" 
                 %(url, times) );
-
-            self.task_queue.put(Task(url,times))
+            for i in range(times):
+                self.task_queue.put(Task(url,1))
             return
         except Exception as e:
             self.send_error(400, 'error'+str(e))
 
 def main():
     queue = Queue.Queue()
-    queue.put(Task("http://www.google.com",1))
-    #queue.put(Task("http://www.sina.com.cn",10))
+    #queue.put(Task("http://www.google.com",1))
+    queue.put(Task("http://www.sina.com.cn",1))
+    queue.put(Task("http://www.sina.com.cn",1))
+    queue.put(Task("http://www.sina.com.cn",1))
+    queue.put(Task("http://www.sina.com.cn",1))
     #queue.put(Task("http://www.qq.com",10))
     #queue.put(Task("http://www.weibo.com",10))
     #queue.put(Task("http://www.wsj.com",10))
     #queue.put(Task("http://www.baidu.com",10))
     #queue.put(Task("https://en.wikipedia.org/wiki/Main_Page",10))
     #queue.put(Task("http://www.yahoo.com",10))
-    user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.9; rv:38.0) Gecko/20100101 Firefox/38.0"
+    defaultUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.9; rv:38.0) Gecko/20100101 Firefox/38.0"
+    defaultAndroidUserAgent = "Mozilla/5.0 (Linux; U; Android 4.0.3; ko-kr; LG-L160L Build/IML74K) AppleWebkit/534.30 (KHTML, like Gecko) Version/4.0 Mobile Safari/534.30";
+
+
     if len(sys.argv) != 3:
         print "usage: python phantom_manager.py log_dir phanton_worker.js_path"
         return
@@ -203,7 +331,8 @@ def main():
     worker_script_path = sys.argv[2]
 #task_queue, worker_count,
     #    timeout, user_agent, log_dir, worker_script_path
-    manager = Manager(queue, 10, 120, user_agent,log_dir,worker_script_path)
+    manager = Manager(queue, 10, 120, defaultAndroidUserAgent,log_dir,worker_script_path)
+
     manager.start()
     time.sleep(10)
     #queue.join()
