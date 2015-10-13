@@ -1,13 +1,16 @@
 from multiprocessing import Process
 import urlparse
-import threading,argparse,subprocess,logging,Queue,os,time,sys
+import threading,argparse,subprocess,logging,Queue,os,time,sys, json, shutil
 import psutil
 import uuid
 import psutil
 import traceback
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 from processPageObject import processPageInfo
+from httpRequest import createDefaultReqObj
+from httpRequest import requestPage
 
+#########         Logger            #########
 logger = logging.getLogger('phantom')
 hdlr = logging.FileHandler('./phantom.log')
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
@@ -18,6 +21,7 @@ logger.addHandler(hdlr)
 logger.addHandler(consoleHandler)
 logger.setLevel(logging.DEBUG)
 
+#########     Utility Functions     #########
 def killProcess(pid):
     try:
         cmd = ['kill','-9','']
@@ -38,8 +42,16 @@ def killProcessAndChildProcesses(parent_pid):
         logger.error("killProcessAndChildProcesses exception %s" % str(e))
         return
 
-# each Task object specifies the `url` to be browsed
-# for `times` 
+def readConfigure(path):
+    data = json.load(open(path))
+    return data
+
+#########         Global Vars       #########
+args = None
+task_server_address = None
+
+# Each Task object specifies the `url` to be browsed
+# for `times` and `callback` will be called 
 class Task:
     def __init__(self, url, time, callback):
         self.url = url
@@ -162,7 +174,11 @@ class Manager(threading.Thread):
                         'url' : current_task.url})
                     if self.__remove_dirs:
                         logger.info("[MAIN] remove dirs")
-                        pass
+                        for d in current_task.dirs:
+                            try:
+                                shutil.rmtree(d)
+                            except Exception as e:
+                                logger.error("[MAIN] fail to remove "+d)
                     current_task = None
 
                 # start task if there is any
@@ -230,42 +246,55 @@ def extractBrowsingLogFromFolder(path_arr):
         results.append(obj)
     return results
 
+# @param data {'url':string, 'timestamp':int, 'path':array}
+# @return results {'url':string, 'timestamp':int, 'data':{ host : median}}
 def taskDoneHandler(data):
-    print "In testCallback %d" %data['timestamp']
-    results = extractBrowsingLogFromFolder(data['path'])
-    processPageInfo(data['url'], results)
+    global args
+    if args == None:
+        args = readConfigure(sys.argv[1])
+    host_data = extractBrowsingLogFromFolder(data['path'])
+    results = processPageInfo(data['url'], host_data)
+    data['data'] = results
+    logger.debug('start to post results to db')
+    db_url = "http://"+args['db_server_host']+":"+str(args['db_server_port']) + \
+        args['db_store_page_info_path']
+    reqObj = createDefaultReqObj(db_url, 'POST', data)
+    resp = requestPage(reqObj)
+    logger.debug("[DEBUG] DB store response: "+str(resp) )    
+    
+    #debug ...
+    time.sleep(1)
+    db_url = "http://"+args['db_server_host']+":"+str(args['db_server_port']) + \
+        args['db_fetch_page_info_path']
+    reqObj = createDefaultReqObj(db_url, 'POST', data)
+    resp = requestPage(reqObj)
+    logger.debug("[DEBUG] DB fetch response: "+str(resp) )
+    #######
+  
+    return data
 
 def main():
-    queue = Queue.Queue()
-    #queue.put(Task("http://www.google.com",1))
-    queue.put(Task("http://www.sina.com.cn",5,taskDoneHandler))
-    #queue.put(Task("http://www.qq.com",10))
-    #queue.put(Task("http://www.weibo.com",10))
-    #queue.put(Task("http://www.wsj.com",10))
-    #queue.put(Task("http://www.baidu.com",10))
-    #queue.put(Task("https://en.wikipedia.org/wiki/Main_Page",10))
-    #queue.put(Task("http://www.yahoo.com",10))
-    defaultUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.9; rv:38.0) Gecko/20100101 Firefox/38.0"
-    defaultAndroidUserAgent = "Mozilla/5.0 (Linux; U; Android 4.0.3; ko-kr; LG-L160L Build/IML74K) AppleWebkit/534.30 (KHTML, like Gecko) Version/4.0 Mobile Safari/534.30";
-
-
-    if len(sys.argv) != 3:
-        print "usage: python phantom_manager.py log_dir phanton_worker.js_path"
+    if len(sys.argv) != 2:
+        print "usage: python phantom_manager.py config_file"
         return
-    log_dir = sys.argv[1]
-    worker_script_path = sys.argv[2]
+    args = readConfigure(sys.argv[1])
+    print args
+    queue = Queue.Queue()
+    queue.put(Task("http://www.sina.com.cn",5,taskDoneHandler))
+
     #task_queue, worker_count,
     #    timeout, user_agent, log_dir, worker_script_path
     #manager = Manager(queue, 10, 120, defaultAndroidUserAgent,log_dir,worker_script_path)
     #task_queue, timeout, user_agent, log_dir, 
     #    worker_script_path
-    manager = Manager(queue, 120, defaultAndroidUserAgent, log_dir, worker_script_path)
+    manager = Manager(queue, args['process_timeout'], 
+        args['default_android_user_agent'], args['log_dir'], args['browsing_script_file'], args['remove_tmp_files'] )
     manager.start()
     time.sleep(2)
     #queue.join()
-    server_address = ('127.0.0.1', 8082)
+    task_server_address = (args['task_server_host'], args['task_server_port'])
     
-    httpd = MyHTTPServer(server_address, KodeFunHTTPRequestHandler)
+    httpd = MyHTTPServer(task_server_address, KodeFunHTTPRequestHandler)
     logger.info('http server is running...')
     try:
         httpd.serve_forever(queue)

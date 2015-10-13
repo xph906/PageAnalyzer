@@ -25,13 +25,16 @@ def processPageInfo(page_url, data, threshold=5):
 		print "[ERROR] no common hosts"
 		return None
 
+	results = {}
 	for host in common_hosts:
 		size_arr  = sorted([item[host]['size']/1000*1000 for item in qualified_data])
 		median = size_arr[len(size_arr)/2]
 		if median == 0:
 			median = 1000
 		print "%s: [%d] %s" %(host, median, ' '.join(str(x) for x in size_arr))		
-
+		results[host] = median
+	
+	return results
 
 def extractDataFromFolder(path, main_host=None):
 	results = []

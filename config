@@ -1,0 +1,15 @@
+{
+  "task_server_host" : "127.0.0.1",
+  "task_server_port" : 8082,
+  "default_android_user_agent" : "Mozilla/5.0 (Linux; U; Android 4.0.3; ko-kr; LG-L160L Build/IML74K) AppleWebkit/534.30 (KHTML, like Gecko) Version/4.0 Mobile Safari/534.30",
+  "log_dir" : "./logs",
+  "browsing_script_file" : "./netsniff.js",
+  "process_timeout" : 30,
+  "remove_tmp_files" : true,
+  "db_server_host" : "localhost",
+  "db_server_port" : 4040,
+  "db_name" : "webdb",
+  "db_pageinfo_table" : "pageinfo",
+  "db_store_page_info_path" : "/api/webcontents/store/pageinfo",
+  "db_fetch_page_info_path" : "/api/webcontents/fetch/pageinfo"
+}
