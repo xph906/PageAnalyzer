@@ -24,7 +24,7 @@ var processURL = function(url){
   new_url = o.protocol+'//'+o.host+o.path;
   return new_url.toLowerCase()
 }
-/* Store Distance */
+/* Store PageInfo */
 app.post('/api/webcontents/store/pageinfo', function (req, res) {
 	if ( !req.body.timestamp || !req.body.url || !req.body.data ) {
 		console.log(req.body.timestamp+" "+req.body.url+" "+req.body.data);
@@ -63,7 +63,6 @@ app.post('/api/webcontents/store/pageinfo', function (req, res) {
 });
 
 
-/* Fetch distance */
 app.post('/api/webcontents/fetch/pageinfo', function (req, res){
 	var url, data, index, collection;
 	if ( !req.body.url ) {

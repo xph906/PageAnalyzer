@@ -280,7 +280,7 @@ def main():
     args = readConfigure(sys.argv[1])
     print args
     queue = Queue.Queue()
-    queue.put(Task("http://www.sina.com.cn",5,taskDoneHandler))
+    #queue.put(Task("http://www.sina.com.cn",5,taskDoneHandler))
 
     #task_queue, worker_count,
     #    timeout, user_agent, log_dir, worker_script_path

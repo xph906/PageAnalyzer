@@ -135,7 +135,7 @@ function analyzeHAR(completeHarObject)
             }
         
             var urlComponents = urlParser.parse(url, true, true);
-            var hostname = urlComponents.hostname;
+            var hostname = urlComponents.protocol + "//" + urlComponents.hostname;
             //console.log(hostname+" size:"+size+" type:"+type+" fulltime:"+full_time);
             if (hostname in results) {
                 results[hostname].size += size;

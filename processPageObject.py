@@ -1,13 +1,16 @@
 import sys
 import os
 
-#data: [{ host : { size : %d, number : %d}}]
+#data: [{ scheme://host : { size : %d, number : %d}}]
 def processPageInfo(page_url, data, threshold=5):
 	host_stat = {}
 	len_arr = sorted([len(item) for item in data])
 	median = len_arr[len(len_arr)/2]
-	min_hosts = median - 5
-	max_hosts = median + 5
+	
+	min_hosts = median - median/2
+	max_hosts = median + median/2
+	if min_hosts <= 0:
+		min_hosts = 1
 
 	qualified_data = []
 	key_sets = []
@@ -15,6 +18,7 @@ def processPageInfo(page_url, data, threshold=5):
 		if len(item) >= min_hosts and len(item) <= max_hosts:
 			qualified_data.append(item)
 			key_sets.append(set(item.keys()) )
+			print "keys: ",[i for i in item.keys()]
 
 	if len(qualified_data) == 0:
 		print "[ERROR] no qualified browsing instance"
