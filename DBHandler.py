@@ -51,9 +51,9 @@ class AdsProphetDBHandler:
 				logger.error('@save_delay_info delay value is zero')
 				return
 			o = urlparse.urlparse(url)
-            host = o.netloc
-            # add a host field for searching
-            info['host'] = host
+			host = o.netloc
+			# add a host field for searching
+			info['host'] = host
 			db = getattr(self.conn, self.db_name)
 			collection = db.delay_table
 			collection.insert(info,check_keys=False)
