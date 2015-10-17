@@ -52,11 +52,11 @@ def fetch_hosts_info(url):
 		hosts = []
 		for res in results:
 			if res["data"] == "None":
-				return host
+				return None
 			res_dict = eval(res["data"])
 			if res_dict is None:
 				print 'no hosts data'
-				return host
+				return None
 			for host in res_dict:
 				host_dict = dict()
 				host_dict["url"] = host
@@ -71,10 +71,12 @@ def post_task_to_manager(url,args):
 	preargs[1:1] = [args["post_task_script_path"],args["self_path"],url,"5"]
         
 	# start worker process 
-        worker = subprocess.Popen(
-		preargs, 
-                stdout=open('stdout.txt', 'w'),
-                stderr=open('stderr.txt', 'w'))
+	try:
+		worker = subprocess.Popen(preargs)
+		print "[DONE] done posting task to manager: "+url
+	except Exception as e:
+		print "[ERROR] failed to post task to manager"
+        
 
 class DataProtocol(LineReceiver):
 
@@ -155,7 +157,7 @@ def main():
 	        print "usage: python PredictionServer.py config_file"
 	        return
 	args = readConfigure(sys.argv[1])
-    	print args
+	print args
 	factory = DataFactory(args)
 	port = reactor.listenTCP(args["prediction_server_port"],factory)
 	print 'Serving on %s.' % (port.getHost())

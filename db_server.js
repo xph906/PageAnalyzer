@@ -6,7 +6,7 @@ var util = require('util');
 
 var mongo = require('mongodb');
 var monk = require('monk');
-var db = monk('localhost:27017/webdb');
+
 
 var app = express();
 app.use(bodyParser({limit: '50mb'}));
@@ -24,8 +24,9 @@ var processURL = function(url){
   new_url = o.protocol+'//'+o.host+o.path;
   return new_url.toLowerCase()
 }
+
 /* Store PageInfo */
-app.post('/api/webcontents/store/pageinfo', function (req, res) {
+app.post(config['db_store_page_info_path'], function (req, res) {
 	if ( !req.body.timestamp || !req.body.url || !req.body.data ) {
 		console.log(req.body.timestamp+" "+req.body.url+" "+req.body.data);
 		return res.json({success : false, message : "incomplete body"});
@@ -62,8 +63,8 @@ app.post('/api/webcontents/store/pageinfo', function (req, res) {
   }
 });
 
-
-app.post('/api/webcontents/fetch/pageinfo', function (req, res){
+/* Fetch PageInfo */
+app.post(config['db_fetch_page_info_path'], function (req, res){
 	var url, data, index, collection;
 	if ( !req.body.url ) {
 		res.json({success : false, message : "incomplete body"});
@@ -101,7 +102,19 @@ app.post('/api/webcontents/fetch/pageinfo', function (req, res){
   }	
 });
 
-var server = app.listen(4040, function () {
+var args = [];
+process.argv.forEach(function (val, index, array) {
+	args.push(val);
+});
+if (args.length <= 2) {
+	console.log("usage node db_server.js config");
+	return;
+}
+
+var fs = require('fs');
+var config = JSON.parse(fs.readFileSync(args[2], 'utf8'));
+var db = monk(config['db_server_host']+'/'+ config['db_name']);
+var server = app.listen(config['db_server_port'], function () {
 
   var host = server.address().address;
   var port = server.address().port;
