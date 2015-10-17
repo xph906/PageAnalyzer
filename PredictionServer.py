@@ -12,6 +12,8 @@ import subprocess
 import urllib
 import sys
 
+from DBHandler import AdsProphetDBHandler
+
 args = None
 
 def readConfigure(path):
@@ -19,6 +21,7 @@ def readConfigure(path):
     data['self_path'] = path
     return data
 
+'''
 def save_delay_info(info):
 	conn = pymongo.MongoClient("127.0.0.1",27017)
 	db = conn.webdb
@@ -76,7 +79,7 @@ def post_task_to_manager(url,args):
 		print "[DONE] done posting task to manager: "+url
 	except Exception as e:
 		print "[ERROR] failed to post task to manager"
-        
+'''        
 
 class DataProtocol(LineReceiver):
 
@@ -103,13 +106,13 @@ class DataProtocol(LineReceiver):
 			#send response to client
 			response_obj = dict()
 			url = urllib.unquote(data_obj["url"])	
-			delay = fetch_delay_info(url)
+			delay = self.factory.db_handler.fetch_delay_info(url)
 			if delay is not None:
 				print '[Server]fetch delay info'
 				response_obj["delay"] = delay
 			else:
 				response_obj["delay"] = 0
-			hosts = fetch_hosts_info(url)
+			hosts = self.factory.db_handler.fetch_hosts_info(url)
 			if hosts is not None:
 				print '[Server]fetch hosts info'
 				if len(hosts) == 0:
@@ -120,7 +123,7 @@ class DataProtocol(LineReceiver):
 			else:
 				response_obj["hosts"] = "None"
 				#post task to page_analyzer
-				post_task_to_manager(url,self.factory.args)
+				self.factory.db_handler.post_task_to_manager(url,self.factory.args)
 				
 			str_response = str(response_obj)+"\r\n"
 			self.transport.write(str_response)				
@@ -132,7 +135,7 @@ class DataProtocol(LineReceiver):
 			data_obj["url"] = url
 
 			if type(data_obj) == dict:
-				save_delay_info(data_obj)
+				self.factory.db_handler.save_delay_info(data_obj)
 				for (k,v) in data_obj.iteritems():
 					print '%s:%s' % (k,v)	
                         else:
@@ -148,8 +151,9 @@ class DataFactory(ServerFactory):
 
 	protocol=DataProtocol
 
-	def __init__(self,args):
+	def __init__(self,args,db_handler):
 		self.args = args
+		self.db_handler = db_handler
 	
 
 def main():
@@ -158,7 +162,8 @@ def main():
 	        return
 	args = readConfigure(sys.argv[1])
 	print args
-	factory = DataFactory(args)
+	db_handler = AdsProphetDBHandler(args)
+	factory = DataFactory(args, db_handler)
 	port = reactor.listenTCP(args["prediction_server_port"],factory)
 	print 'Serving on %s.' % (port.getHost())
 	reactor.run()	
