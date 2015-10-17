@@ -124,6 +124,7 @@ class DataProtocol(LineReceiver):
 					print '[Server]No hosts'
 					response_obj["hosts"] = "None"
 				else:
+					print 'found hosts: '+str(hosts)
 					response_obj["hosts"] = hosts
 			else:
 				response_obj["hosts"] = "None"
