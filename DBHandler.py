@@ -87,7 +87,7 @@ class AdsProphetDBHandler:
 			url = self.process_url(url)
 			logger.debug('@fetch_delay_info_from_host '+url)
 			o = urlparse.urlparse(url)
-            host = o.netloc
+			host = o.netloc
 			db = getattr(self.conn, self.db_name)
 			collection = db.delay_table
 			results = collection.find({"host" : host})
