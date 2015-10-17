@@ -1,4 +1,5 @@
 import thread
+import logging
 import threading
 import copy
 import time
@@ -33,7 +34,7 @@ class AdsProphetDBHandler:
 
 	def save_delay_info(self, info):
 		try:
-			logger.error('debug @save_delay_info '+info)
+			logger.debug('debug @save_delay_info '+str(info) )
 			db = getattr(self.conn, self.db_name)
 			collection = db.delay_table
 			collection.insert(info,check_keys=False)
@@ -42,7 +43,7 @@ class AdsProphetDBHandler:
 
 	def fetch_delay_info(self, url):
 		try:
-			logger.error('debug @fetch_delay_info '+url)
+			logger.debug('debug @fetch_delay_info '+url)
 			db = getattr(self.conn, self.db_name)
 			collection = db.delay_table
 			results = collection.find({"url" : url})
@@ -59,9 +60,9 @@ class AdsProphetDBHandler:
 			logger.error('error @fetch_delay_info '+str(e))
 			return None
 
-	def fetch_hosts_info(url):
+	def fetch_hosts_info(self, url):
 		try:
-			logger.error('debug @fetch_hosts_info '+url)
+			logger.debug('debug @fetch_hosts_info '+url)
 			db = getattr(self.conn, self.db_name)
 			collection = db.pageinfo
 			results = collection.find({"url":url})
@@ -95,14 +96,14 @@ class AdsProphetDBHandler:
 
 	#FIXME: modify this part to be consistent with previous methods 
 	#  (i.e., no extra process)
-	def post_task_to_manager(url,args):
+	def post_task_to_manager(self, url,args):
 		preargs = ['python']
 		preargs[1:1] = [args["post_task_script_path"],args["self_path"],url,"5"]
         
 		# start worker process 
 		try:
 			worker = subprocess.Popen(preargs)
-			logger.error('debug @post_task_to_manager done posting tasks '+url)
+			logger.debug('debug @post_task_to_manager done posting tasks '+url)
 		except Exception as e:
 			logger.error('error @post_task_to_manager '+str(e))
 	
