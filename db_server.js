@@ -4,9 +4,20 @@ var urlParse = require('url');
 var bodyParser = require('body-parser');
 var util = require('util');
 
+var args = [];
+process.argv.forEach(function (val, index, array) {
+	args.push(val);
+});
+if (args.length <= 2) {
+	console.log("usage node db_server.js config");
+	return;
+}
+
 var mongo = require('mongodb');
 var monk = require('monk');
-
+var fs = require('fs');
+var config = JSON.parse(fs.readFileSync(args[2], 'utf8'));
+var db = monk(config['db_server_host']+'/'+ config['db_name']);
 
 var app = express();
 app.use(bodyParser({limit: '50mb'}));
@@ -102,18 +113,9 @@ app.post(config['db_fetch_page_info_path'], function (req, res){
   }	
 });
 
-var args = [];
-process.argv.forEach(function (val, index, array) {
-	args.push(val);
-});
-if (args.length <= 2) {
-	console.log("usage node db_server.js config");
-	return;
-}
 
-var fs = require('fs');
-var config = JSON.parse(fs.readFileSync(args[2], 'utf8'));
-var db = monk(config['db_server_host']+'/'+ config['db_name']);
+
+
 var server = app.listen(config['db_server_port'], function () {
 
   var host = server.address().address;
