@@ -45,12 +45,12 @@ class AdsProphetDBHandler:
 
 	def save_delay_info(self, info):
 		try:
+			info['url'] = self.process_url(info['url'])
 			logger.debug('@save_delay_info '+str(info) )
-			url = self.process_url(info['url'])
 			if info['delay'] == 0:
 				logger.error('@save_delay_info delay value is zero')
 				return
-			o = urlparse.urlparse(url)
+			o = urlparse.urlparse(info['url'])
 			host = o.netloc
 			# add a host field for searching
 			info['host'] = host
@@ -107,6 +107,7 @@ class AdsProphetDBHandler:
 
 	def fetch_hosts_info(self, url):
 		try:
+			url = self.process_url(url)
 			logger.debug('@fetch_hosts_info '+url)
 			db = getattr(self.conn, self.db_name)
 			collection = db.pageinfo

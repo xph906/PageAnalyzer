@@ -32,7 +32,7 @@ app.use(function(req,res,next){
 var processURL = function(url){
   var new_url = querystring.unescape(url);
   var o = urlParse.parse(new_url)
-  new_url = o.protocol+'//'+o.host+o.path;
+  new_url = o.protocol+'//'+o.host+o.pathname;
   return new_url.toLowerCase()
 }
 
