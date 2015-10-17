@@ -106,9 +106,14 @@ class DataProtocol(LineReceiver):
 			#send response to client
 			response_obj = dict()
 			url = urllib.unquote(data_obj["url"])	
-			delay = self.factory.db_handler.fetch_delay_info(url)
+			
+			# add prediction logic here
+			# put prediction logic in a independent class, such as
+			#    PredictionEngine.mode1, PredictionEngine.mode2 ...
+			# the delay is an array
+			delay = self.factory.db_handler.fetch_delay_info_from_url(url)
 			if delay is not None:
-				print '[Server]fetch delay info'
+				print '[Server]fetch delay info ',str(delay)
 				response_obj["delay"] = delay
 			else:
 				response_obj["delay"] = 0
@@ -138,8 +143,8 @@ class DataProtocol(LineReceiver):
 				self.factory.db_handler.save_delay_info(data_obj)
 				for (k,v) in data_obj.iteritems():
 					print '%s:%s' % (k,v)	
-                        else:
-                                print '[Server]requset format error'
+			else:
+				print '[Server]requset format error'
 		else:
 			print '[Server]command format error'
 

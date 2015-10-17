@@ -9,6 +9,7 @@ import pymongo
 import subprocess
 import urllib
 import sys
+import urlparse
 
 logger = logging.getLogger('dbhandler')
 hdlr = logging.FileHandler('./dbhandler.log')
@@ -32,18 +33,38 @@ class AdsProphetDBHandler:
 			logger.error("failed to connect to db "+self.db_name)
 			return None
 
+	def process_url(self, url):
+		try:
+			url = url.lower()
+			o = urlparse.urlparse(url)
+			new_url = o.scheme + '://' + o.netloc + o.path
+			return new_url
+		except Exception as e:
+			logger.error('@process_url invalid url: '+str(url))
+			return None
+
 	def save_delay_info(self, info):
 		try:
-			logger.debug('debug @save_delay_info '+str(info) )
+			logger.debug('@save_delay_info '+str(info) )
+			url = self.process_url(info['url'])
+			if info['delay'] == 0:
+				logger.error('@save_delay_info delay value is zero')
+				return
+			o = urlparse.urlparse(url)
+            host = o.netloc
+            # add a host field for searching
+            info['host'] = host
 			db = getattr(self.conn, self.db_name)
 			collection = db.delay_table
 			collection.insert(info,check_keys=False)
 		except Exception as e:
-			logger.error('error @save_delay_info '+str(e))
+			logger.error('@save_delay_info '+str(e))
 
-	def fetch_delay_info(self, url):
+	# this method returns an array of delays [int]
+	def fetch_delay_info_from_url(self, url):
 		try:
-			logger.debug('debug @fetch_delay_info '+url)
+			url = self.process_url(url)
+			logger.debug('@fetch_delay_info_from_url '+url)
 			db = getattr(self.conn, self.db_name)
 			collection = db.delay_table
 			results = collection.find({"url" : url})
@@ -54,15 +75,39 @@ class AdsProphetDBHandler:
 				for res in results:
 					delays.append(res["delay"])
 				len_delays = len(sorted(delays))
-				delay = delays[len_delays/2]
+				#delay = delays[len_delays/2]
+				delay = delays
 			return delay	
 		except Exception as e:
-			logger.error('error @fetch_delay_info '+str(e))
+			logger.error('@fetch_delay_info '+str(e))
+			return None
+
+	def fetch_delay_info_from_host(self, url):
+		try:
+			url = self.process_url(url)
+			logger.debug('@fetch_delay_info_from_host '+url)
+			o = urlparse.urlparse(url)
+            host = o.netloc
+			db = getattr(self.conn, self.db_name)
+			collection = db.delay_table
+			results = collection.find({"host" : host})
+			if results.count() == 0:
+				return None
+			else:
+				delays = []
+				for res in results:
+					delays.append(res["delay"])
+				len_delays = len(sorted(delays))
+				#delay = delays[len_delays/2]
+				delay = delays
+			return delay	
+		except Exception as e:
+			logger.error('@fetch_delay_info '+str(e))
 			return None
 
 	def fetch_hosts_info(self, url):
 		try:
-			logger.debug('debug @fetch_hosts_info '+url)
+			logger.debug('@fetch_hosts_info '+url)
 			db = getattr(self.conn, self.db_name)
 			collection = db.pageinfo
 			results = collection.find({"url":url})
@@ -91,7 +136,7 @@ class AdsProphetDBHandler:
 				return None
 			
 		except Exception as e:
-			logger.error('error @fetch_hosts_info '+str(e))
+			logger.error('@fetch_hosts_info '+str(e))
 			return None
 
 	#FIXME: modify this part to be consistent with previous methods 
@@ -103,7 +148,7 @@ class AdsProphetDBHandler:
 		# start worker process 
 		try:
 			worker = subprocess.Popen(preargs)
-			logger.debug('debug @post_task_to_manager done posting tasks '+url)
+			logger.debug('@post_task_to_manager done posting tasks '+url)
 		except Exception as e:
-			logger.error('error @post_task_to_manager '+str(e))
+			logger.error('@post_task_to_manager '+str(e))
 	
