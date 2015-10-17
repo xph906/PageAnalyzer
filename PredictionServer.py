@@ -114,9 +114,11 @@ class DataProtocol(LineReceiver):
 			delay = self.factory.db_handler.fetch_delay_info_from_url(url)
 			if delay is not None:
 				print '[Server]fetch delay info ',str(delay)
+				if len(delay) > 20:
+					delay = delay[:20]
 				response_obj["delay"] = delay
 			else:
-				response_obj["delay"] = 0
+				response_obj["delay"] = "None"
 			hosts = self.factory.db_handler.fetch_hosts_info(url)
 			if hosts is not None:
 				print '[Server]fetch hosts info'
