@@ -1,7 +1,7 @@
 import sys
 import os
 
-#data: [{ scheme://host : { size : %d, number : %d}}]
+#data: [{ scheme://host : { size : %d, number : %d, latency : %d}}]
 def processPageInfo(page_url, data, threshold=5):
 	host_stat = {}
 	len_arr = sorted([len(item) for item in data])
@@ -31,12 +31,13 @@ def processPageInfo(page_url, data, threshold=5):
 
 	results = {}
 	for host in common_hosts:
+		latency = item[host]['latency']
 		size_arr  = sorted([item[host]['size']/1000*1000 for item in qualified_data])
 		median = size_arr[len(size_arr)/2]
 		if median == 0:
 			median = 1000
 		print "%s: [%d] %s" %(host, median, ' '.join(str(x) for x in size_arr))		
-		results[host] = median
+		results[host] = {'median':median, 'latency':latency};
 	
 	return results
 

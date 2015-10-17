@@ -127,6 +127,7 @@ function analyzeHAR(completeHarObject)
         }
         harObj.entries.forEach( function(elem){
             var url = elem.request.url;
+            var time = elem.time;
             var full_time = elem.fullTime;
             var size = elem.response.content.size;
             var type = elem.response.content.mimeType;
@@ -140,13 +141,15 @@ function analyzeHAR(completeHarObject)
             if (hostname in results) {
                 results[hostname].size += size;
                 results[hostname].number += 1;
+                results[hostname].latency += time
             }
             else {
-                results[hostname] = {'size':size, 'number':1};
+                results[hostname] = {'size':size, 'number':1, 'latency':time};
             }
         });
         for (var item in results) {
-            console.log('[ITEM] '+item+" => "+results[item].size+" "+results[item].number);
+            console.log('[ITEM] '+item+" => "+results[item].size+" "+
+                results[item].number+" "+results[item].latency);
         }
         return results;
     }

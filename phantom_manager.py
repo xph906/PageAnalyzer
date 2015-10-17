@@ -238,10 +238,14 @@ def extractBrowsingLogFromFolder(path_arr):
         obj = {}
         for line in open(fname):
             if line.startswith('[ITEM]'):
-                elems = line.split()
-                host = elems[1].strip()
-                size = int(elems[3])
-                obj[host] = {'size' : size}
+                try:
+                    elems = line.split()
+                    host = elems[1].strip()
+                    size = int(elems[3])
+                    latency = int(elems[5])
+                    obj[host] = {'size' : size, 'latency':latency}
+                except Exception as e:
+                    logger.error("[ERROR] fail to parse line: "+line)
         logger.debug("[DEBUG] host size:"+str(len(obj)) )
         results.append(obj)
     return results
