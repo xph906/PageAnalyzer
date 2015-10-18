@@ -589,7 +589,8 @@ span.second{
 	position: absolute;
 	top: 0px;
 	width: 100%;
-	min-height: 255px;
+	min-height:250px;
+	
 	background: #6595f9;
 	padding: 2em 1em;
 }
@@ -598,6 +599,7 @@ span.second{
 }
 .team-member-info img.member-pic{
 	width:100%;
+
 }
 .team-member-info h5{
 	margin:0.8em 0 0;
@@ -1269,6 +1271,7 @@ p.copy a:hover{
 	}
 	.team-member{
 		margin-bottom:1em;
+		margin-left: 1em;
 	}
 	.footer-social-icons li {
 		list-style: none;

@@ -2381,12 +2381,13 @@ input[type="button"].btn-block {
 }
 .glyphicon {
   position: relative;
-  top: 1px;
+  top: 15px;
   display: inline-block;
   font-family: 'Glyphicons Halflings';
   font-style: normal;
   font-weight: normal;
   line-height: 1;
+  font-size: 38px;
 
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

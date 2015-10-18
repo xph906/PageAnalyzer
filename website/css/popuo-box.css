@@ -1,7 +1,6 @@
 /* Styles for dialog window */
 #small-dialog {
-	background: white;
-	padding:20px;
+	padding:0px;
 	text-align: left;
 	max-width: 650px;
 	margin: 40px auto;
@@ -190,15 +189,15 @@ button::-moz-focus-inner {
   border: 0; }
 
 .mfp-close {
-  width: 44px;
-  height: 44px;
-  line-height: 44px;
+  width: 24px;
+  height: 24px;
+  line-height: 0;
   position: absolute;
  right: 0px;
-	top: -43px;
+	top: 0px;
   text-decoration: none;
   text-align: center;
-  padding: 0 0 18px 10px;
+  padding: 0 0 0 0;
   color: white;
   font-style: normal;
   font-size: 28px;
@@ -233,7 +232,7 @@ button::-moz-focus-inner {
 		padding-bottom:3px;
 	}
 	#small-dialog{
-		padding:15px;
+		padding:0;
 	}
 	.comments-area input[type="text"], .comments-area textarea{
 		width:92%;
