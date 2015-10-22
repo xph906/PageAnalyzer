@@ -7,6 +7,7 @@ from bs4 import BeautifulSoup
 from bs4 import UnicodeDammit
 from libmproxy.protocol.http import decoded
 from time import time
+from time import sleep
 import utilities
 from urlparse import urlparse
 
@@ -50,7 +51,11 @@ def request(context, flow):
             context.f.write('unmodified url: '+flow.request.url+'\n')
             o = urlparse(flow.request.url)
             flow.request.headers["Host"] = [o.netloc]
+            if len(path.strip()) > 1:
+                context.f.write('sleep three seconds for page %s\b' %flow.request.url)
+                sleep(3)
             return
+
         context.f.write('real_dest:'+path+'\n')
         o = urlparse(path)
 
